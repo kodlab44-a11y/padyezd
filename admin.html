@@ -192,68 +192,7 @@
       "tehvil menteqesindedi"
     ];
 
-    const INITIAL_ORDERS = [
-      {
-        id: 1732185600001,
-        mehsul: "Nike Dunk Low Retro Panda",
-        musteri: "Əli Məmmədov",
-        telefon: "+994 50 345 67 89",
-        baglamaNomre: "CN-8820491",
-        izlemeKodu: "PD-88421",
-        mayaCny: "420",
-        mayaAzn: "105.55",
-        kargo: "18.00",
-        satis: "190.00",
-        status: "gomruk yoxlanisindadir",
-        tarix: "2026-11-15",
-        qeyd: "Ölçü 43 EU"
-      },
-      {
-        id: 1732185600002,
-        mehsul: "Stüssy Basic Pigment Dyed Hoodie",
-        musteri: "Ayan İsmayılova",
-        telefon: "+994 55 890 12 34",
-        baglamaNomre: "CN-9912048",
-        izlemeKodu: "PD-92015",
-        mayaCny: "380",
-        mayaAzn: "95.50",
-        kargo: "15.00",
-        satis: "185.00",
-        status: "azerbaycana gonderilib",
-        tarix: "2026-11-17",
-        qeyd: "Ölçü M"
-      },
-      {
-        id: 1732185600003,
-        mehsul: "Sp5der 555555 Worldwide Tracksuit",
-        musteri: "Kamran Hüseynov",
-        telefon: "+994 70 234 56 78",
-        baglamaNomre: "CN-7730219",
-        izlemeKodu: "PD-77302",
-        mayaCny: "580",
-        mayaAzn: "145.75",
-        kargo: "22.00",
-        satis: "260.00",
-        status: "tehvil menteqesindedi",
-        tarix: "2026-11-10",
-        qeyd: "Ölçü L"
-      },
-      {
-        id: 1732185600004,
-        mehsul: "Bape Sta Low White Black Camo",
-        musteri: "Elmir Əliyev",
-        telefon: "+994 99 456 78 90",
-        baglamaNomre: "CN-6411802",
-        izlemeKodu: "PD-64118",
-        mayaCny: "490",
-        mayaAzn: "123.14",
-        kargo: "20.00",
-        satis: "225.00",
-        status: "xarici anbar",
-        tarix: "2026-11-19",
-        qeyd: "Ölçü 41 EU"
-      }
-    ];
+    const INITIAL_ORDERS = [];
 
     const MONTHS = ["Yanvar","Fevral","Mart","Aprel","May","İyun","İyul","Avqust","Sentyabr","Oktyabr","Noyabr","Dekabr"];
     const CNY_TO_AZN_DEFAULT = 0.2513;
@@ -838,7 +777,13 @@ Cari status: ${order.status}`;
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-zinc-800/60">
-                    {filteredOrders.map(order => {
+                    {filteredOrders.length === 0 ? (
+                      <tr>
+                        <td colSpan="8" className="py-12 text-center text-zinc-500 font-mono text-xs">
+                          Heç bir sifariş tapılmadı. "+ Yeni Sifariş" düyməsinə klikləyərək sifariş əlavə edə bilərsiniz.
+                        </td>
+                      </tr>
+                    ) : filteredOrders.map(order => {
                       const profit = calcProfit(order);
                       const norm = normalizeStage(order.status);
                       const curIdx = STAGE_KEYS.indexOf(norm);
@@ -906,7 +851,7 @@ Cari status: ${order.status}`;
                           </td>
                         </tr>
                       );
-                    })}
+                    ))}
                   </tbody>
                 </table>
               </div>
@@ -935,7 +880,7 @@ Cari status: ${order.status}`;
                       value={formData.mehsul}
                       onChange={(e) => setFormData(p => ({ ...p, mehsul: e.target.value }))}
                       className="w-full bg-zinc-900 border border-zinc-800 rounded-lg p-2.5 text-white"
-                      placeholder="Məs: Nike Dunk Low Panda"
+                      placeholder="Məhsulun adı"
                     />
                   </div>
 
@@ -946,7 +891,7 @@ Cari status: ${order.status}`;
                       value={formData.musteri}
                       onChange={(e) => setFormData(p => ({ ...p, musteri: e.target.value }))}
                       className="w-full bg-zinc-900 border border-zinc-800 rounded-lg p-2.5 text-white"
-                      placeholder="Məs: Əli Məmmədov"
+                      placeholder="Müştərinin adı və soyadı"
                     />
                   </div>
 

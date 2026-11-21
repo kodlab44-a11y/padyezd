@@ -247,56 +247,7 @@
       "M 780 250 C 700 210, 670 190, 640 180 C 530 150, 480 150, 430 170 C 340 200, 290 180, 255 175 L 220 185 L 185 195"
     ];
 
-    const CACHED_ORDERS = [
-      {
-        id: 1732185600001,
-        mehsul: "Nike Dunk Low Retro Panda",
-        musteri: "Əli Məmmədov",
-        telefon: "+994 50 345 67 89",
-        baglamaNomre: "CN-8820491",
-        izlemeKodu: "PD-88421",
-        satis: "190.00",
-        status: "gomruk yoxlanisindadir",
-        tarix: "2026-11-15",
-        qeyd: "Ölçü 43 EU"
-      },
-      {
-        id: 1732185600002,
-        mehsul: "Stüssy Basic Pigment Dyed Hoodie",
-        musteri: "Ayan İsmayılova",
-        telefon: "+994 55 890 12 34",
-        baglamaNomre: "CN-9912048",
-        izlemeKodu: "PD-92015",
-        satis: "185.00",
-        status: "azerbaycana gonderilib",
-        tarix: "2026-11-17",
-        qeyd: "Ölçü M"
-      },
-      {
-        id: 1732185600003,
-        mehsul: "Sp5der 555555 Worldwide Tracksuit",
-        musteri: "Kamran Hüseynov",
-        telefon: "+994 70 234 56 78",
-        baglamaNomre: "CN-7730219",
-        izlemeKodu: "PD-77302",
-        satis: "260.00",
-        status: "tehvil menteqesindedi",
-        tarix: "2026-11-10",
-        qeyd: "Ölçü L"
-      },
-      {
-        id: 1732185600004,
-        mehsul: "Bape Sta Low White Black Camo",
-        musteri: "Elmir Əliyev",
-        telefon: "+994 99 456 78 90",
-        baglamaNomre: "CN-6411802",
-        izlemeKodu: "PD-64118",
-        satis: "225.00",
-        status: "xarici anbar",
-        tarix: "2026-11-19",
-        qeyd: "Ölçü 41 EU"
-      }
-    ];
+    const CACHED_ORDERS = [];
 
     function formatAZN(val) {
       if (!val && val !== 0) return "— ₼";
@@ -540,7 +491,7 @@
                       value={trackInput}
                       onChange={(e) => setTrackInput(e.target.value)}
                       onKeyDown={(e) => e.key === "Enter" && performSearch(trackInput)}
-                      placeholder="İzləmə kodunu daxil edin (Məs: PD-88421)..."
+                      placeholder="İzləmə kodunu daxil edin..."
                       className="w-full bg-transparent border-none text-white placeholder-zinc-500 px-3 py-2 text-sm font-mono focus:outline-none"
                     />
                     <button
@@ -552,22 +503,7 @@
                     </button>
                   </div>
 
-                  <div className="flex flex-wrap items-center justify-center gap-1.5 mt-3 text-xs font-mono text-zinc-400">
-                    <span>Nümunələr:</span>
-                    {CACHED_ORDERS.map(o => (
-                      <button
-                        key={o.id}
-                        onClick={() => {
-                          setTrackInput(o.izlemeKodu);
-                          performSearch(o.izlemeKodu);
-                        }}
-                        className="px-2 py-0.5 rounded bg-zinc-800 hover:bg-zinc-700 border border-zinc-700 text-zinc-300 transition-colors"
-                      >
-                        {o.izlemeKodu}
-                      </button>
-                    ))}
                   </div>
-                </div>
               </div>
             </div>
 
