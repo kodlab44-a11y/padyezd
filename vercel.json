@@ -1,5 +1,16 @@
 {
-  "name": "padyezd",
   "version": 2,
-  "cleanUrls": true
+  "cleanUrls": true,
+  "redirects": [
+    {
+      "source": "/admin",
+      "destination": "/",
+      "permanent": false
+    },
+    {
+      "source": "/admin.html",
+      "destination": "/",
+      "permanent": false
+    }
+  ]
 }
