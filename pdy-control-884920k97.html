@@ -211,23 +211,81 @@
         setTimeout(() => setToast(null), 3000);
       };
 
-      // Load Orders on Startup
-      useEffect(() => {
-        if (!isAuthed) return;
+            // Load Orders: from cloud DB with local cache and auto-sync
+      const loadOrders = async () => {
         const saved = localStorage.getItem("padyezd_orders");
+        let localList = [];
         if (saved) {
           try {
-            setOrders(JSON.parse(saved));
-          } catch (e) {
-            setOrders([]);
-          }
+            localList = JSON.parse(saved);
+            setOrders(localList);
+          } catch (e) {}
         }
+
+        // 1. Fetch from cloud database
+        try {
+          const res = await fetch("/api/orders", {
+            headers: { "x-admin-key": MASTER_PASSWORD }
+          });
+          if (res.ok) {
+            const cloudOrders = await res.json();
+            if (Array.isArray(cloudOrders)) {
+              // Merge any local-only orders that cloud doesn't have yet
+              const cloudIds = new Set(cloudOrders.map(o => String(o.id)));
+              const unsynced = localList.filter(o => !cloudIds.has(String(o.id)));
+
+              // Auto-sync any unsynced local orders to cloud DB
+              for (const item of unsynced) {
+                fetch("/api/orders", {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json", "x-admin-key": MASTER_PASSWORD },
+                  body: JSON.stringify(item)
+                }).catch(() => {});
+              }
+
+              const merged = [...unsynced, ...cloudOrders];
+              setOrders(merged);
+              localStorage.setItem("padyezd_orders", JSON.stringify(merged));
+              return;
+            }
+          }
+        } catch (err) {
+          console.warn("Could not fetch from cloud DB:", err);
+        }
+      };
+
+      useEffect(() => {
+        if (!isAuthed) return;
+        loadOrders();
       }, [isAuthed]);
 
-      // Save Orders to LocalStorage
-      const persistOrders = (newOrders) => {
+      // Save Orders to LocalStorage and Cloud DB
+      const persistOrders = async (newOrders, actionOrder = null, isDelete = false) => {
         setOrders(newOrders);
         localStorage.setItem("padyezd_orders", JSON.stringify(newOrders));
+
+        // Cloud DB Sync
+        if (actionOrder) {
+          try {
+            if (isDelete) {
+              await fetch("/api/orders?id=" + encodeURIComponent(actionOrder.id), {
+                method: "DELETE",
+                headers: { "x-admin-key": MASTER_PASSWORD }
+              });
+            } else {
+              await fetch("/api/orders", {
+                method: "POST",
+                headers: {
+                  "Content-Type": "application/json",
+                  "x-admin-key": MASTER_PASSWORD
+                },
+                body: JSON.stringify(actionOrder)
+              });
+            }
+          } catch (err) {
+            console.error("Cloud DB sync failed:", err);
+          }
+        }
       };
 
       const handleLogin = (e) => {
@@ -296,7 +354,7 @@
         setShowModal(true);
       };
 
-      const handleSaveOrder = (e) => {
+      const handleSaveOrder = async (e) => {
         e.preventDefault();
         if (!formData.mehsul.trim()) {
           showToast("Məhsul adını daxil edin", "error");
@@ -320,38 +378,44 @@
           qeyd: formData.qeyd.trim()
         };
 
-        if (editId) {
-          persistOrders(orders.map(o => o.id === editId ? orderToSave : o));
-          showToast("Sifariş yeniləndi");
-        } else {
-          persistOrders([orderToSave, ...orders]);
-          showToast("Yeni sifariş əlavə edildi");
-        }
+        const updatedList = editId
+          ? orders.map(o => o.id === editId ? orderToSave : o)
+          : [orderToSave, ...orders];
 
+        await persistOrders(updatedList, orderToSave, false);
+        showToast(editId ? "Sifariş yeniləndi (Buludda saxlanıldı)" : "Yeni sifariş yaradıldı (Buludda saxlanıldı)");
         setShowModal(false);
       };
 
-      const handleDeleteOrder = (orderId) => {
+      const handleDeleteOrder = async (orderId) => {
         if (confirm("Bu sifarişi silmək istədiyinizdən əminsiniz?")) {
-          persistOrders(orders.filter(o => o.id !== orderId));
+          const toDelete = orders.find(o => o.id === orderId) || { id: orderId };
+          const updatedList = orders.filter(o => o.id !== orderId);
+          await persistOrders(updatedList, toDelete, true);
           showToast("Sifariş silindi");
         }
       };
 
-      const handleAdvanceStatus = (orderId) => {
+      const handleAdvanceStatus = async (orderId) => {
         const order = orders.find(o => o.id === orderId);
         if (!order) return;
         const currentIdx = STAGE_KEYS.indexOf(normalizeStage(order.status));
         const nextIdx = Math.min(currentIdx + 1, STAGE_KEYS.length - 1);
         const nextStage = STAGE_KEYS[nextIdx];
-        persistOrders(orders.map(o => o.id === orderId ? { ...o, status: nextStage } : o));
-        showToast(`Status: ${STAGE_LABELS[nextStage]}`);
+        const updatedOrder = { ...order, status: nextStage };
+        const updatedList = orders.map(o => o.id === orderId ? updatedOrder : o);
+        await persistOrders(updatedList, updatedOrder, false);
+        showToast("Status: " + STAGE_LABELS[nextStage]);
       };
 
-      const handleStatusSelect = (orderId, newStatus) => {
+      const handleStatusSelect = async (orderId, newStatus) => {
+        const order = orders.find(o => o.id === orderId);
+        if (!order) return;
         const norm = normalizeStage(newStatus);
-        persistOrders(orders.map(o => o.id === orderId ? { ...o, status: norm } : o));
-        showToast(`Status: ${STAGE_LABELS[norm]}`);
+        const updatedOrder = { ...order, status: norm };
+        const updatedList = orders.map(o => o.id === orderId ? updatedOrder : o);
+        await persistOrders(updatedList, updatedOrder, false);
+        showToast("Status: " + STAGE_LABELS[norm]);
       };
 
       // Filtered Orders

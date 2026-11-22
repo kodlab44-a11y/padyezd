@@ -491,7 +491,7 @@
         showToast(t("copied"));
       };
 
-      const performSearch = async (queryCode) => {
+            const performSearch = async (queryCode) => {
         const clean = (queryCode || "").trim().toLowerCase();
         if (!clean) {
           showToast(t("toastEnterCode"), "error");
@@ -501,13 +501,43 @@
         setLoading(true);
         setSearchAttempted(true);
 
+        // 1. Live Cloud Database API lookup (Available to ANY customer globally)
+        try {
+          const res = await fetch("/api/orders?code=" + encodeURIComponent(clean));
+          if (res.ok) {
+            const data = await res.json();
+            if (data && (data.izlemeKodu || data.izleme_kodu)) {
+              const formatted = {
+                id: data.id,
+                mehsul: data.mehsul,
+                musteri: data.musteri,
+                telefon: data.telefon,
+                baglamaNomre: data.baglamaNomre || data.baglama_nomre,
+                izlemeKodu: data.izlemeKodu || data.izleme_kodu,
+                satis: data.satis,
+                status: normalizeStage(data.status),
+                tarix: data.tarix,
+                qeyd: data.qeyd
+              };
+              setTrackedOrder(formatted);
+              window.location.hash = formatted.izlemeKodu;
+              setLoading(false);
+              showToast(t("toastFound"));
+              return;
+            }
+          }
+        } catch (err) {
+          console.warn("Cloud API lookup failed:", err);
+        }
+
+        // 2. Supabase fallback
         const supa = getSupabaseClient();
         if (supa) {
           try {
             const { data, error } = await supa
               .from("orders")
               .select("id, mehsul, musteri, telefon, baglama_nomre, izleme_kodu, satis, status, tarix, qeyd")
-              .or(`izleme_kodu.ilike.${clean},baglama_nomre.ilike.${clean}`)
+              .or("izleme_kodu.ilike." + clean + ",baglama_nomre.ilike." + clean)
               .limit(1);
 
             if (!error && data && data.length > 0) {
@@ -533,7 +563,7 @@
           } catch (err) {}
         }
 
-        // Local Storage lookup
+        // 3. Local Storage fallback (if offline)
         try {
           const saved = localStorage.getItem("padyezd_orders");
           if (saved) {
