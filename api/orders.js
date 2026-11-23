@@ -41,9 +41,7 @@ module.exports = async (req, res) => {
           SELECT id, mehsul, musteri, telefon, 
                  baglama_nomre AS "baglamaNomre", 
                  izleme_kodu AS "izlemeKodu", 
-                 xarici_baglama AS "xariciBaglama",
-                 xarici_izleme AS "xariciIzleme",
-                 satis, status, tarix::text, qeyd,
+                 status, tarix::text, qeyd,
                  stage_dates AS "stageDates"
           FROM orders
           WHERE LOWER(izleme_kodu) = ${clean} 

@@ -452,9 +452,6 @@
                 telefon: data.telefon,
                 baglamaNomre: data.baglamaNomre || data.baglama_nomre,
                 izlemeKodu: data.izlemeKodu || data.izleme_kodu,
-                xariciBaglama: data.xariciBaglama || data.xarici_baglama || "",
-                xariciIzleme: data.xariciIzleme || data.xarici_izleme || "",
-                satis: data.satis,
                 status: normalizeStage(data.status),
                 tarix: data.tarix,
                 qeyd: data.qeyd,
@@ -693,27 +690,27 @@
                     </div>
 
                     <div className="theme-card-subtle p-3.5 rounded-xl border">
-                      <span className="text-zinc-500 block text-[10px] uppercase mb-1">{t("price")}</span>
-                      <span className={`font-bold text-sm block ${isDark ? "text-emerald-400" : "text-emerald-600"}`}>
-                        {trackedOrder.satis ? `${trackedOrder.satis} ₼` : "—"}
+                      <span className="text-zinc-500 block text-[10px] uppercase mb-1">{t("status")}</span>
+                      <span className={`font-bold text-xs truncate block ${isDark ? "text-emerald-400" : "text-emerald-600"}`}>
+                        {curStage.titles[lang] || curStage.titles.az}
                       </span>
                     </div>
                   </div>
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs font-mono pt-1">
-                    <div className="flex items-center gap-3 p-3 rounded-xl border theme-card-subtle">
-                      <span className="text-zinc-500">{t("customer")}:</span>
+                    <div className="flex items-center gap-3 p-3.5 rounded-xl border theme-card-subtle">
+                      <span className="text-zinc-500 whitespace-nowrap">{t("customer")}:</span>
                       <span className={`font-bold ${isDark ? "text-zinc-200" : "text-zinc-900"}`}>{trackedOrder.musteri || "—"}</span>
                       {trackedOrder.telefon && (
-                        <span className="text-zinc-500 ml-auto">{trackedOrder.telefon}</span>
+                        <span className="text-zinc-500 ml-auto font-mono">{trackedOrder.telefon}</span>
                       )}
                     </div>
-                    {trackedOrder.qeyd && (
-                      <div className="flex items-center gap-2 p-3 rounded-xl border theme-card-subtle">
-                        <span className="text-zinc-500">{t("notes")}:</span>
-                        <span className={`font-medium truncate ${isDark ? "text-zinc-300" : "text-zinc-700"}`}>{trackedOrder.qeyd}</span>
-                      </div>
-                    )}
+                    <div className="flex items-center gap-3 p-3.5 rounded-xl border theme-card-subtle">
+                      <span className="text-zinc-500 whitespace-nowrap">{t("notes")}:</span>
+                      <span className={`font-semibold ${trackedOrder.qeyd ? (isDark ? "text-emerald-400" : "text-emerald-600") : "text-zinc-500 italic"}`}>
+                        {trackedOrder.qeyd || "—"}
+                      </span>
+                    </div>
                   </div>
                 </div>
 

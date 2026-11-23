@@ -789,14 +789,14 @@
                   {/* 2-COLUMN GRID (SOL & SAĞ) */}
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     
-                    {/* SOL TƏRƏF: SİSTEMİN TƏYİN ETDİYİ KODLAR VƏ ƏSAS MƏLUMATLAR */}
+                    {/* SOL TƏRƏF: SİSTEMİN TƏYİN ETDİYİ KODLAR VƏ ƏSAS MƏLUMATLAR (MÜŞTƏRİYƏ GÖRÜNƏN) */}
                     <div className="space-y-4 pr-0 md:pr-4 md:border-r border-zinc-800">
                       <div className="flex items-center justify-between pb-2 border-b border-zinc-800/40">
                         <span className="text-zinc-400 font-bold uppercase text-[11px] flex items-center gap-1.5">
-                          <span>👤 Sol Tərəf: Əsas & Sistem Kodları</span>
+                          <span>👤 Sol Tərəf: Əsas Məlumatlar & Müştəri Görünüşü</span>
                         </span>
-                        <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-zinc-800 text-emerald-400 font-semibold">
-                          Sistem tərəfindən
+                        <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-emerald-950/60 text-emerald-400 border border-emerald-800/40 font-semibold">
+                          Müştəriyə görünür
                         </span>
                       </div>
 
@@ -907,16 +907,35 @@
                         </div>
                       </div>
 
+                      {/* XÜSUSİ QEYD (MÜŞTƏRİYƏ GÖRÜNƏN) */}
+                      <div>
+                        <div className="flex items-center justify-between mb-1">
+                          <label className="text-zinc-400 font-semibold text-[11px] flex items-center gap-1.5">
+                            <span>Xüsusi Qeyd (Ölçü, Rəng, Qeydlər)</span>
+                          </label>
+                          <span className="text-[10px] text-emerald-400 font-mono">
+                            ✓ Müştəriyə görünür
+                          </span>
+                        </div>
+                        <textarea
+                          rows="2"
+                          value={formData.qeyd}
+                          onChange={(e) => setFormData({ ...formData, qeyd: e.target.value })}
+                          placeholder="Məsələn: Ölçü - (4XL); Rəng - (Qara); Qapıya çatdırılma"
+                          className={`w-full px-3 py-2 rounded-lg border focus:outline-none resize-none ${isDark ? "bg-zinc-900 border-zinc-700 text-white" : "bg-white border-zinc-300 text-black"}`}
+                        />
+                      </div>
+
                     </div>
 
-                    {/* SAĞ TƏRƏF: XARİCİ KODLAR (İÇİ BOŞ, ADMİN YAZIR) & MALİYYƏ */}
+                    {/* SAĞ TƏRƏF: XARİCİ KODLAR (İÇİ BOŞ, ADMİN YAZIR) & MALİYYƏ (MƏXFİ / YALNIZ ADMİN) */}
                     <div className="space-y-4">
                       <div className="flex items-center justify-between pb-2 border-b border-zinc-800/40">
                         <span className="text-zinc-400 font-bold uppercase text-[11px] flex items-center gap-1.5">
                           <span>📦 Sağ Tərəf: Xarici Kodlar & Maliyyə</span>
                         </span>
                         <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-zinc-800 text-zinc-400 font-semibold">
-                          Admin tərəfindən
+                          Yalnız Admin (Məxfi)
                         </span>
                       </div>
 
@@ -1018,16 +1037,6 @@
                         </div>
                       </div>
 
-                      <div>
-                        <label className="text-zinc-400 block mb-1 font-semibold text-[11px]">Qeyd Hissəsi (Ölçü, rəng və s.)</label>
-                        <input
-                          type="text"
-                          value={formData.qeyd}
-                          onChange={(e) => setFormData({ ...formData, qeyd: e.target.value })}
-                          placeholder="Məsələn: Ölçü 43 EU, qara rəng"
-                          className={`w-full px-3 py-2 rounded-lg border focus:outline-none ${isDark ? "bg-zinc-900 border-zinc-700 text-white" : "bg-white border-zinc-300 text-black"}`}
-                        />
-                      </div>
 
                     </div>
 
