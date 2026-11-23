@@ -179,6 +179,8 @@
         telefon: "",
         baglamaNomre: "",
         izlemeKodu: "",
+        xariciBaglama: "",
+        xariciIzleme: "",
         mayaCny: "",
         mayaAzn: "",
         kargo: "",
@@ -313,6 +315,8 @@
           telefon: "",
           baglamaNomre: codes.baglamaNomre,
           izlemeKodu: codes.izlemeKodu,
+          xariciBaglama: "",
+          xariciIzleme: "",
           mayaCny: "",
           mayaAzn: "",
           kargo: "",
@@ -333,6 +337,8 @@
           telefon: order.telefon || "",
           baglamaNomre: order.baglamaNomre || "",
           izlemeKodu: order.izlemeKodu || "",
+          xariciBaglama: order.xariciBaglama || "",
+          xariciIzleme: order.xariciIzleme || "",
           mayaCny: order.mayaCny || "",
           mayaAzn: order.mayaAzn || "",
           kargo: order.kargo || "",
@@ -369,6 +375,8 @@
           telefon: formData.telefon.trim(),
           baglamaNomre: formData.baglamaNomre.trim() || codes.baglamaNomre,
           izlemeKodu: formData.izlemeKodu.trim() || codes.izlemeKodu,
+          xariciBaglama: formData.xariciBaglama.trim(),
+          xariciIzleme: formData.xariciIzleme.trim(),
           mayaCny: formData.mayaCny || "0",
           mayaAzn: formData.mayaAzn || "0",
           kargo: formData.kargo || "0",
@@ -445,15 +453,34 @@
       };
 
       const filteredOrders = useMemo(() => {
+        const q = (searchQuery || "").trim().toLowerCase();
         return orders.filter(o => {
-          const matchQuery = !searchQuery || 
-            (o.mehsul && o.mehsul.toLowerCase().includes(searchQuery.toLowerCase())) ||
-            (o.musteri && o.musteri.toLowerCase().includes(searchQuery.toLowerCase())) ||
-            (o.izlemeKodu && o.izlemeKodu.toLowerCase().includes(searchQuery.toLowerCase())) ||
-            (o.baglamaNomre && o.baglamaNomre.toLowerCase().includes(searchQuery.toLowerCase()));
+          const norm = normalizeStage(o.status);
+          const matchStatus = statusFilter === "all" || norm === statusFilter;
+          if (!matchStatus) return false;
 
-          const matchStatus = statusFilter === "all" || normalizeStage(o.status) === statusFilter;
-          return matchQuery && matchStatus;
+          if (!q) return true;
+
+          // UNIVERSAL DEEP SEARCH: Checks ANY field (Ad, Soyad, Telefon, Kodlar, Tarix, Qeyd, Qiymət, Status)
+          const stageName = STAGE_LABELS[norm] || "";
+          const fields = [
+            o.mehsul,
+            o.musteri,
+            o.telefon,
+            o.izlemeKodu,
+            o.baglamaNomre,
+            o.xariciIzleme,
+            o.xariciBaglama,
+            o.tarix,
+            o.qeyd,
+            o.satis != null ? String(o.satis) : "",
+            o.mayaAzn != null ? String(o.mayaAzn) : "",
+            o.kargo != null ? String(o.kargo) : "",
+            norm,
+            stageName
+          ];
+
+          return fields.some(f => f && String(f).toLowerCase().includes(q));
         });
       }, [orders, searchQuery, statusFilter]);
 
@@ -654,19 +681,31 @@
                               <div className="text-[11px] font-mono text-zinc-500">{order.telefon || "—"}</div>
                             </td>
                             <td className="py-3 px-4">
-                              <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md border font-bold bg-zinc-900/50 border-zinc-700">
-                                <span className={isDark ? "text-white" : "text-zinc-900"}>{order.izlemeKodu}</span>
-                                <button
-                                  onClick={() => copyToClipboard(order.izlemeKodu, "İzləmə kodu")}
-                                  title="İzləmə kodunu kopyala"
-                                  className="text-zinc-400 hover:text-emerald-400 transition-colors p-0.5 rounded"
-                                >
-                                  <Icons.Copy size={13} />
-                                </button>
+                              <div className="space-y-1">
+                                <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded border font-bold bg-zinc-900/50 border-zinc-700">
+                                  <span className={isDark ? "text-white" : "text-zinc-900"}>{order.izlemeKodu}</span>
+                                  <button
+                                    onClick={() => copyToClipboard(order.izlemeKodu, "İzləmə kodu")}
+                                    title="İzləmə kodunu kopyala"
+                                    className="text-zinc-400 hover:text-emerald-400 transition-colors p-0.5 rounded"
+                                  >
+                                    <Icons.Copy size={12} />
+                                  </button>
+                                </div>
+                                {order.xariciIzleme && (
+                                  <div className="text-[10px] text-zinc-500 font-mono truncate max-w-[130px]" title={"Xarici İzləmə: " + order.xariciIzleme}>
+                                    Xarici: {order.xariciIzleme}
+                                  </div>
+                                )}
                               </div>
                             </td>
                             <td className="py-3 px-4 text-zinc-400">
-                              {order.baglamaNomre}
+                              <div>{order.baglamaNomre}</div>
+                              {order.xariciBaglama && (
+                                <div className="text-[10px] text-zinc-500 font-mono truncate max-w-[130px]" title={"Xarici Bağlama: " + order.xariciBaglama}>
+                                  Xarici: {order.xariciBaglama}
+                                </div>
+                              )}
                             </td>
                             <td className="py-3 px-4 text-zinc-400">
                               {order.tarix || "—"}
@@ -750,10 +789,15 @@
                   {/* 2-COLUMN GRID (SOL & SAĞ) */}
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     
-                    {/* SOL TƏRƏF: MÜŞTƏRİ & ƏSAS MƏLUMATLAR */}
+                    {/* SOL TƏRƏF: SİSTEMİN TƏYİN ETDİYİ KODLAR VƏ ƏSAS MƏLUMATLAR */}
                     <div className="space-y-4 pr-0 md:pr-4 md:border-r border-zinc-800">
-                      <div className="flex items-center gap-2 pb-2 border-b border-zinc-800/40 text-zinc-400 font-bold uppercase text-[11px]">
-                        <span>👤 Sol Tərəf: Sifarişçi Məlumatları</span>
+                      <div className="flex items-center justify-between pb-2 border-b border-zinc-800/40">
+                        <span className="text-zinc-400 font-bold uppercase text-[11px] flex items-center gap-1.5">
+                          <span>👤 Sol Tərəf: Əsas & Sistem Kodları</span>
+                        </span>
+                        <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-zinc-800 text-emerald-400 font-semibold">
+                          Sistem tərəfindən
+                        </span>
                       </div>
 
                       <div>
@@ -763,103 +807,153 @@
                           required
                           value={formData.mehsul}
                           onChange={(e) => setFormData({ ...formData, mehsul: e.target.value })}
-                          placeholder="Məs: Nike Dunk Low Panda / Trapstar Puffer"
+                          placeholder="Məs: Nike Dunk Low Panda / Trapstar Gödəkçə"
                           className={`w-full px-3 py-2.5 rounded-lg border focus:outline-none ${isDark ? "bg-zinc-900 border-zinc-700 text-white" : "bg-white border-zinc-300 text-black"}`}
                         />
-                      </div>
-
-                      <div>
-                        <label className="text-zinc-400 block mb-1 font-semibold">Müştərinin Adı və Soyadı</label>
-                        <input
-                          type="text"
-                          value={formData.musteri}
-                          onChange={(e) => setFormData({ ...formData, musteri: e.target.value })}
-                          placeholder="Məs: Əli Məmmədov"
-                          className={`w-full px-3 py-2.5 rounded-lg border focus:outline-none ${isDark ? "bg-zinc-900 border-zinc-700 text-white" : "bg-white border-zinc-300 text-black"}`}
-                        />
-                      </div>
-
-                      <div>
-                        <label className="text-zinc-400 block mb-1 font-semibold">Əlaqə Nömrəsi</label>
-                        <input
-                          type="text"
-                          value={formData.telefon}
-                          onChange={(e) => setFormData({ ...formData, telefon: e.target.value })}
-                          placeholder="+994 50 123 45 67"
-                          className={`w-full px-3 py-2.5 rounded-lg border focus:outline-none ${isDark ? "bg-zinc-900 border-zinc-700 text-white" : "bg-white border-zinc-300 text-black"}`}
-                        />
-                      </div>
-
-                      {/* TARİXİN DƏYİŞDİRİLMƏSİ SEÇİMİ */}
-                      <div>
-                        <div className="flex items-center justify-between mb-1">
-                          <label className="text-zinc-400 font-semibold flex items-center gap-1.5">
-                            <Icons.Calendar size={13} />
-                            <span>Sifariş Tarixi * (Dəyişdirilə bilər)</span>
-                          </label>
-                          <button
-                            type="button"
-                            onClick={() => setFormData({ ...formData, tarix: new Date().toISOString().split("T")[0] })}
-                            className="text-[10px] text-emerald-400 hover:underline"
-                          >
-                            Bugün
-                          </button>
-                        </div>
-                        <input
-                          type="date"
-                          required
-                          value={formData.tarix}
-                          onChange={(e) => setFormData({ ...formData, tarix: e.target.value })}
-                          className={`w-full px-3 py-2.5 rounded-lg border focus:outline-none ${isDark ? "bg-zinc-900 border-zinc-700 text-white" : "bg-white border-zinc-300 text-black"}`}
-                        />
-                      </div>
-
-                      <div>
-                        <label className="text-zinc-400 block mb-1 font-semibold">Cari Mərhələ *</label>
-                        <select
-                          value={formData.status}
-                          onChange={(e) => setFormData({ ...formData, status: e.target.value })}
-                          className={`w-full px-3 py-2.5 rounded-lg border focus:outline-none cursor-pointer ${isDark ? "bg-zinc-900 border-zinc-700 text-white" : "bg-white border-zinc-300 text-black"}`}
-                        >
-                          {STAGE_KEYS.map(k => (
-                            <option key={k} value={k}>{STAGE_LABELS[k]}</option>
-                          ))}
-                        </select>
-                      </div>
-
-                    </div>
-
-                    {/* SAĞ TƏRƏF: LOGİSTİKA, MALİYYƏ & CANLI MƏNFƏƏT */}
-                    <div className="space-y-4">
-                      <div className="flex items-center gap-2 pb-2 border-b border-zinc-800/40 text-zinc-400 font-bold uppercase text-[11px]">
-                        <span>📦 Sağ Tərəf: Kodlar & Maliyyə</span>
                       </div>
 
                       <div className="grid grid-cols-2 gap-3">
                         <div>
-                          <label className="text-zinc-400 block mb-1 font-semibold">Bağlama №</label>
+                          <label className="text-zinc-400 block mb-1 font-semibold">Müştərinin Adı</label>
                           <input
                             type="text"
-                            value={formData.baglamaNomre}
-                            onChange={(e) => setFormData({ ...formData, baglamaNomre: e.target.value })}
+                            value={formData.musteri}
+                            onChange={(e) => setFormData({ ...formData, musteri: e.target.value })}
+                            placeholder="Ad və soyad"
+                            className={`w-full px-3 py-2.5 rounded-lg border focus:outline-none ${isDark ? "bg-zinc-900 border-zinc-700 text-white" : "bg-white border-zinc-300 text-black"}`}
+                          />
+                        </div>
+                        <div>
+                          <label className="text-zinc-400 block mb-1 font-semibold">Əlaqə Nömrəsi</label>
+                          <input
+                            type="text"
+                            value={formData.telefon}
+                            onChange={(e) => setFormData({ ...formData, telefon: e.target.value })}
+                            placeholder="+994 50 123 45 67"
+                            className={`w-full px-3 py-2.5 rounded-lg border focus:outline-none ${isDark ? "bg-zinc-900 border-zinc-700 text-white" : "bg-white border-zinc-300 text-black"}`}
+                          />
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-3">
+                        <div>
+                          <div className="flex items-center justify-between mb-1">
+                            <label className="text-zinc-400 font-semibold text-[11px]">Sifariş Tarixi</label>
+                            <button
+                              type="button"
+                              onClick={() => setFormData({ ...formData, tarix: new Date().toISOString().split("T")[0] })}
+                              className="text-[10px] text-emerald-400 hover:underline"
+                            >
+                              Bugün
+                            </button>
+                          </div>
+                          <input
+                            type="date"
+                            required
+                            value={formData.tarix}
+                            onChange={(e) => setFormData({ ...formData, tarix: e.target.value })}
                             className={`w-full px-3 py-2 rounded-lg border focus:outline-none ${isDark ? "bg-zinc-900 border-zinc-700 text-white" : "bg-white border-zinc-300 text-black"}`}
                           />
                         </div>
                         <div>
-                          <label className="text-zinc-400 block mb-1 font-semibold">İzləmə Kodu</label>
-                          <input
-                            type="text"
-                            value={formData.izlemeKodu}
-                            onChange={(e) => setFormData({ ...formData, izlemeKodu: e.target.value })}
-                            className={`w-full px-3 py-2 rounded-lg border focus:outline-none font-bold ${isDark ? "bg-zinc-900 border-zinc-700 text-emerald-400" : "bg-white border-zinc-300 text-emerald-600"}`}
-                          />
+                          <label className="text-zinc-400 block mb-1 font-semibold text-[11px]">Cari Mərhələ *</label>
+                          <select
+                            value={formData.status}
+                            onChange={(e) => setFormData({ ...formData, status: e.target.value })}
+                            className={`w-full px-3 py-2 rounded-lg border focus:outline-none cursor-pointer ${isDark ? "bg-zinc-900 border-zinc-700 text-white" : "bg-white border-zinc-300 text-black"}`}
+                          >
+                            {STAGE_KEYS.map(k => (
+                              <option key={k} value={k}>{STAGE_LABELS[k]}</option>
+                            ))}
+                          </select>
+                        </div>
+                      </div>
+
+                      {/* SOL TƏRƏF: SİSTEMİN TƏYİN ETDİYİ KODLAR (PD və CN) */}
+                      <div className="p-3.5 rounded-xl border theme-subtle space-y-3">
+                        <div className="text-[11px] font-bold text-zinc-400 uppercase flex items-center justify-between">
+                          <span>Sistemin Təyin Etdiyi Kodlar:</span>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const c = generateCodes();
+                              setFormData({ ...formData, baglamaNomre: c.baglamaNomre, izlemeKodu: c.izlemeKodu });
+                            }}
+                            className="text-[10px] text-zinc-400 hover:text-white underline font-mono"
+                          >
+                            Yenisini yarat
+                          </button>
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-3">
+                          <div>
+                            <label className="text-zinc-400 block mb-1 text-[11px]">Sistem Bağlama №</label>
+                            <input
+                              type="text"
+                              value={formData.baglamaNomre}
+                              onChange={(e) => setFormData({ ...formData, baglamaNomre: e.target.value })}
+                              className={`w-full px-3 py-2 rounded-lg border focus:outline-none font-bold ${isDark ? "bg-zinc-900 border-zinc-700 text-zinc-200" : "bg-white border-zinc-300 text-zinc-800"}`}
+                            />
+                          </div>
+                          <div>
+                            <label className="text-zinc-400 block mb-1 text-[11px]">Sistem İzləmə Kodu</label>
+                            <input
+                              type="text"
+                              value={formData.izlemeKodu}
+                              onChange={(e) => setFormData({ ...formData, izlemeKodu: e.target.value })}
+                              className={`w-full px-3 py-2 rounded-lg border focus:outline-none font-bold ${isDark ? "bg-zinc-900 border-zinc-700 text-emerald-400" : "bg-white border-zinc-300 text-emerald-600"}`}
+                            />
+                          </div>
+                        </div>
+                      </div>
+
+                    </div>
+
+                    {/* SAĞ TƏRƏF: XARİCİ KODLAR (İÇİ BOŞ, ADMİN YAZIR) & MALİYYƏ */}
+                    <div className="space-y-4">
+                      <div className="flex items-center justify-between pb-2 border-b border-zinc-800/40">
+                        <span className="text-zinc-400 font-bold uppercase text-[11px] flex items-center gap-1.5">
+                          <span>📦 Sağ Tərəf: Xarici Kodlar & Maliyyə</span>
+                        </span>
+                        <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-zinc-800 text-zinc-400 font-semibold">
+                          Admin tərəfindən
+                        </span>
+                      </div>
+
+                      {/* SAĞ TƏRƏF: İÇİ BOŞ 2 KOD XANASI (XARİCİ BAĞLAMA VƏ XARİCİ İZLƏMƏ) */}
+                      <div className="p-3.5 rounded-xl border theme-subtle space-y-3">
+                        <div className="text-[11px] font-bold text-zinc-400 uppercase">
+                          Xarici Kargo / Çin İzləmə Kodları (Boşdur, Siz daxil edin):
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-3">
+                          <div>
+                            <label className="text-zinc-400 block mb-1 text-[11px]">Xarici Bağlama №</label>
+                            <input
+                              type="text"
+                              value={formData.xariciBaglama}
+                              onChange={(e) => setFormData({ ...formData, xariciBaglama: e.target.value })}
+                              placeholder="Məs: SF13904921 / YTO..."
+                              className={`w-full px-3 py-2 rounded-lg border focus:outline-none ${isDark ? "bg-zinc-900 border-zinc-700 text-white" : "bg-white border-zinc-300 text-black"}`}
+                            />
+                          </div>
+                          <div>
+                            <label className="text-zinc-400 block mb-1 text-[11px]">Xarici İzləmə Kodu</label>
+                            <input
+                              type="text"
+                              value={formData.xariciIzleme}
+                              onChange={(e) => setFormData({ ...formData, xariciIzleme: e.target.value })}
+                              placeholder="Məs: 77301928491..."
+                              className={`w-full px-3 py-2 rounded-lg border focus:outline-none ${isDark ? "bg-zinc-900 border-zinc-700 text-white" : "bg-white border-zinc-300 text-black"}`}
+                            />
+                          </div>
                         </div>
                       </div>
 
                       {/* MALİYYƏ XANALARI */}
                       <div className="grid grid-cols-3 gap-2.5">
                         <div>
-                          <label className="text-zinc-400 block mb-1 font-semibold">Maya (₼ AZN)</label>
+                          <label className="text-zinc-400 block mb-1 font-semibold text-[11px]">Maya (₼ AZN)</label>
                           <input
                             type="number"
                             step="0.01"
@@ -870,7 +964,7 @@
                           />
                         </div>
                         <div>
-                          <label className="text-zinc-400 block mb-1 font-semibold">Karqo (₼ AZN)</label>
+                          <label className="text-zinc-400 block mb-1 font-semibold text-[11px]">Karqo (₼ AZN)</label>
                           <input
                             type="number"
                             step="0.01"
@@ -881,7 +975,7 @@
                           />
                         </div>
                         <div>
-                          <label className="text-zinc-400 block mb-1 font-semibold">Satış (₼ AZN)</label>
+                          <label className="text-zinc-400 block mb-1 font-semibold text-[11px]">Satış (₼ AZN)</label>
                           <input
                             type="number"
                             step="0.01"
@@ -916,7 +1010,7 @@
                             </span>
                           </div>
                           <div className="text-right">
-                            <span className="text-[10px] uppercase block text-zinc-400">Marja (Faiz):</span>
+                            <span className="text-[10px] uppercase block text-zinc-400">Mənfəət Faizi (Marja):</span>
                             <span className="text-sm font-extrabold font-mono">
                               {modalProfit.marginPct}%
                             </span>
@@ -925,7 +1019,7 @@
                       </div>
 
                       <div>
-                        <label className="text-zinc-400 block mb-1 font-semibold">Qeyd Hissəsi (Ölçü, rəng və s.)</label>
+                        <label className="text-zinc-400 block mb-1 font-semibold text-[11px]">Qeyd Hissəsi (Ölçü, rəng və s.)</label>
                         <input
                           type="text"
                           value={formData.qeyd}

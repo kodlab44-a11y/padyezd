@@ -41,10 +41,15 @@ module.exports = async (req, res) => {
           SELECT id, mehsul, musteri, telefon, 
                  baglama_nomre AS "baglamaNomre", 
                  izleme_kodu AS "izlemeKodu", 
+                 xarici_baglama AS "xariciBaglama",
+                 xarici_izleme AS "xariciIzleme",
                  satis, status, tarix::text, qeyd,
                  stage_dates AS "stageDates"
           FROM orders
-          WHERE LOWER(izleme_kodu) = ${clean} OR LOWER(baglama_nomre) = ${clean}
+          WHERE LOWER(izleme_kodu) = ${clean} 
+             OR LOWER(baglama_nomre) = ${clean}
+             OR LOWER(COALESCE(xarici_izleme, '')) = ${clean}
+             OR LOWER(COALESCE(xarici_baglama, '')) = ${clean}
           LIMIT 1
         `;
 
@@ -64,6 +69,8 @@ module.exports = async (req, res) => {
         SELECT id, mehsul, musteri, telefon, 
                baglama_nomre AS "baglamaNomre", 
                izleme_kodu AS "izlemeKodu", 
+               xarici_baglama AS "xariciBaglama",
+               xarici_izleme AS "xariciIzleme",
                maya_cny AS "mayaCny",
                maya_azn AS "mayaAzn",
                kargo, satis, status, tarix::text, qeyd,
@@ -84,6 +91,7 @@ module.exports = async (req, res) => {
       const body = typeof req.body === 'string' ? JSON.parse(req.body) : req.body;
       const {
         id, mehsul, musteri, telefon, baglamaNomre, izlemeKodu,
+        xariciBaglama, xariciIzleme,
         mayaCny, mayaAzn, kargo, satis, status, tarix, qeyd, stageDates
       } = body;
 
@@ -98,11 +106,13 @@ module.exports = async (req, res) => {
       await sql`
         INSERT INTO orders (
           id, mehsul, musteri, telefon, baglama_nomre, izleme_kodu,
+          xarici_baglama, xarici_izleme,
           maya_cny, maya_azn, kargo, satis, status, tarix, qeyd, stage_dates
         )
         VALUES (
           ${orderId.toString()}, ${mehsul}, ${musteri || ''}, ${telefon || ''}, 
           ${baglamaNomre}, ${izlemeKodu}, 
+          ${xariciBaglama || ''}, ${xariciIzleme || ''},
           ${Number(mayaCny) || 0}, ${Number(mayaAzn) || 0}, ${Number(kargo) || 0}, 
           ${Number(satis) || 0}, ${status || 'sifaris verilib'}, 
           ${orderDate}, ${qeyd || ''}, ${stageDatesJson}::jsonb
@@ -113,6 +123,8 @@ module.exports = async (req, res) => {
           telefon = EXCLUDED.telefon,
           baglama_nomre = EXCLUDED.baglama_nomre,
           izleme_kodu = EXCLUDED.izleme_kodu,
+          xarici_baglama = EXCLUDED.xarici_baglama,
+          xarici_izleme = EXCLUDED.xarici_izleme,
           maya_cny = EXCLUDED.maya_cny,
           maya_azn = EXCLUDED.maya_azn,
           kargo = EXCLUDED.kargo,
