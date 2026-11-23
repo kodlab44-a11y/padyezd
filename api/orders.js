@@ -41,7 +41,8 @@ module.exports = async (req, res) => {
           SELECT id, mehsul, musteri, telefon, 
                  baglama_nomre AS "baglamaNomre", 
                  izleme_kodu AS "izlemeKodu", 
-                 satis, status, tarix::text, qeyd
+                 satis, status, tarix::text, qeyd,
+                 stage_dates AS "stageDates"
           FROM orders
           WHERE LOWER(izleme_kodu) = ${clean} OR LOWER(baglama_nomre) = ${clean}
           LIMIT 1
@@ -65,7 +66,8 @@ module.exports = async (req, res) => {
                izleme_kodu AS "izlemeKodu", 
                maya_cny AS "mayaCny",
                maya_azn AS "mayaAzn",
-               kargo, satis, status, tarix::text, qeyd
+               kargo, satis, status, tarix::text, qeyd,
+               stage_dates AS "stageDates"
         FROM orders
         ORDER BY id DESC
       `;
@@ -82,7 +84,7 @@ module.exports = async (req, res) => {
       const body = typeof req.body === 'string' ? JSON.parse(req.body) : req.body;
       const {
         id, mehsul, musteri, telefon, baglamaNomre, izlemeKodu,
-        mayaCny, mayaAzn, kargo, satis, status, tarix, qeyd
+        mayaCny, mayaAzn, kargo, satis, status, tarix, qeyd, stageDates
       } = body;
 
       if (!mehsul || !izlemeKodu) {
@@ -91,18 +93,19 @@ module.exports = async (req, res) => {
 
       const orderId = id ? BigInt(id) : BigInt(Date.now());
       const orderDate = tarix || new Date().toISOString().split('T')[0];
+      const stageDatesJson = stageDates ? JSON.stringify(stageDates) : '{}';
 
       await sql`
         INSERT INTO orders (
           id, mehsul, musteri, telefon, baglama_nomre, izleme_kodu,
-          maya_cny, maya_azn, kargo, satis, status, tarix, qeyd
+          maya_cny, maya_azn, kargo, satis, status, tarix, qeyd, stage_dates
         )
         VALUES (
           ${orderId.toString()}, ${mehsul}, ${musteri || ''}, ${telefon || ''}, 
           ${baglamaNomre}, ${izlemeKodu}, 
           ${Number(mayaCny) || 0}, ${Number(mayaAzn) || 0}, ${Number(kargo) || 0}, 
           ${Number(satis) || 0}, ${status || 'sifaris verilib'}, 
-          ${orderDate}, ${qeyd || ''}
+          ${orderDate}, ${qeyd || ''}, ${stageDatesJson}::jsonb
         )
         ON CONFLICT (id) DO UPDATE SET
           mehsul = EXCLUDED.mehsul,
@@ -116,7 +119,8 @@ module.exports = async (req, res) => {
           satis = EXCLUDED.satis,
           status = EXCLUDED.status,
           tarix = EXCLUDED.tarix,
-          qeyd = EXCLUDED.qeyd
+          qeyd = EXCLUDED.qeyd,
+          stage_dates = EXCLUDED.stage_dates
       `;
 
       return res.status(200).json({ success: true, id: orderId.toString() });
