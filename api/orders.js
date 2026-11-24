@@ -87,6 +87,23 @@ module.exports = async (req, res) => {
       }
 
       const body = typeof req.body === 'string' ? JSON.parse(req.body) : req.body;
+
+      // Bulk update handling
+      if (body.bulk && Array.isArray(body.orders)) {
+        for (const item of body.orders) {
+          const { id, status, stageDates } = item;
+          if (id && status) {
+            const stageDatesJson = stageDates ? JSON.stringify(stageDates) : '{}';
+            await sql`
+              UPDATE orders 
+              SET status = ${status}, stage_dates = ${stageDatesJson}::jsonb
+              WHERE id = ${id.toString()}
+            `;
+          }
+        }
+        return res.status(200).json({ success: true, count: body.orders.length });
+      }
+
       const {
         id, mehsul, musteri, telefon, baglamaNomre, izlemeKodu,
         xariciBaglama, xariciIzleme,

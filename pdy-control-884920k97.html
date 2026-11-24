@@ -150,6 +150,16 @@
           <path d="M19 7V4a1 1 0 0 0-1-1H5a2 2 0 0 0 0 4h15a1 1 0 0 1 1 1v4h-3a2 2 0 0 0 0 4h3a1 1 0 0 0 1-1v-2a1 1 0 0 0-1-1"/>
           <path d="M3 5v14a2 2 0 0 0 2 2h15a1 1 0 0 0 1-1v-4"/>
         </svg>
+      ),
+      Download: ({ size = 16, className = "" }) => (
+        <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>
+        </svg>
+      ),
+      Crown: ({ size = 15, className = "" }) => (
+        <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+          <path d="m2 4 3 12h14l3-12-6 7-4-7-4 7-6-7zm3 16h14"/>
+        </svg>
       )
     };
 
@@ -194,6 +204,11 @@
       const [showModal, setShowModal] = useState(false);
       const [editId, setEditId] = useState(null);
       const [toast, setToast] = useState(null);
+
+      // Bulk Selection States
+      const [selectedOrderIds, setSelectedOrderIds] = useState([]);
+      const [bulkStage, setBulkStage] = useState("baki kargo terminali");
+      const [isBulkUpdating, setIsBulkUpdating] = useState(false);
 
       const [formData, setFormData] = useState({
         mehsul: "",
@@ -519,6 +534,185 @@
         return { maya, kargo, satis, totalCost, netProfit, marginPct };
       }, [formData.mayaAzn, formData.kargo, formData.satis]);
 
+      // Customer Order Counts Map (For CRM & Table VIP badges)
+      const customerOrderCounts = useMemo(() => {
+        const counts = {};
+        orders.forEach(o => {
+          const key = (o.musteri || "").trim().toLowerCase();
+          if (key && key.length >= 2) {
+            counts[key] = (counts[key] || 0) + 1;
+          }
+        });
+        return counts;
+      }, [orders]);
+
+      // Customer CRM Memo for Modal (When typing customer name or phone)
+      const customerCRM = useMemo(() => {
+        const name = (formData.musteri || "").trim().toLowerCase();
+        const phone = (formData.telefon || "").trim().replace(/\s+/g, "");
+        if ((!name || name.length < 3) && (!phone || phone.length < 5)) return null;
+
+        const pastOrders = orders.filter(o => {
+          if (editId && String(o.id) === String(editId)) return false;
+          const oName = (o.musteri || "").trim().toLowerCase();
+          const oPhone = (o.telefon || "").trim().replace(/\s+/g, "");
+          const matchName = name.length >= 3 && oName === name;
+          const matchPhone = phone.length >= 7 && oPhone.includes(phone);
+          return matchName || matchPhone;
+        });
+
+        if (pastOrders.length === 0) return null;
+
+        const count = pastOrders.length;
+        const currentOrderNo = count + 1;
+        const totalSpent = pastOrders.reduce((acc, o) => acc + (parseFloat(o.satis) || 0), 0);
+        const avgSpent = (totalSpent / count).toFixed(2);
+        const isVip = count >= 2;
+
+        return {
+          pastOrders,
+          count,
+          currentOrderNo,
+          totalSpent: totalSpent.toFixed(2),
+          avgSpent,
+          isVip
+        };
+      }, [formData.musteri, formData.telefon, orders, editId]);
+
+      // Bulk Selection Toggle
+      const toggleSelectOrder = (id) => {
+        setSelectedOrderIds(prev => 
+          prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]
+        );
+      };
+
+      const toggleSelectAll = () => {
+        if (filteredOrders.length > 0 && selectedOrderIds.length === filteredOrders.length) {
+          setSelectedOrderIds([]);
+        } else {
+          setSelectedOrderIds(filteredOrders.map(o => o.id));
+        }
+      };
+
+      // Bulk Status Update Handler
+      const handleBulkUpdateStage = async () => {
+        if (selectedOrderIds.length === 0) return;
+        setIsBulkUpdating(true);
+        const todayStr = new Date().toISOString().split("T")[0];
+        const stageIdx = STAGE_KEYS.indexOf(bulkStage) + 1;
+
+        const updatedOrdersList = orders.map(o => {
+          if (selectedOrderIds.includes(o.id)) {
+            const updatedDates = {
+              ...(o.stageDates || {}),
+              [stageIdx]: todayStr
+            };
+            return {
+              ...o,
+              status: bulkStage,
+              stageDates: updatedDates
+            };
+          }
+          return o;
+        });
+
+        setOrders(updatedOrdersList);
+
+        try {
+          const payload = {
+            bulk: true,
+            adminKey: ADMIN_KEY,
+            orders: selectedOrderIds.map(id => {
+              const ord = updatedOrdersList.find(o => o.id === id);
+              return {
+                id: ord.id,
+                status: ord.status,
+                stageDates: ord.stageDates
+              };
+            })
+          };
+
+          const res = await fetch("/api/orders", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              "x-admin-key": ADMIN_KEY
+            },
+            body: JSON.stringify(payload)
+          });
+
+          if (res.ok) {
+            showToast(`${selectedOrderIds.length} sifarişin mərhələsi yeniləndi: ${STAGE_LABELS[bulkStage]}`);
+          } else {
+            showToast("Serverdə yeniləmə xətası!", "error");
+          }
+        } catch (err) {
+          showToast("Xəta baş verdi!", "error");
+        } finally {
+          setIsBulkUpdating(false);
+          setSelectedOrderIds([]);
+        }
+      };
+
+      // Excel / CSV Export Handler
+      const handleExportExcel = () => {
+        if (orders.length === 0) {
+          showToast("İxrac ediləcək sifariş yoxdur", "error");
+          return;
+        }
+
+        const headers = [
+          "Sifariş ID", "Məhsul", "Müştəri", "Əlaqə Nömrəsi", 
+          "Sistem İzləmə Kodu", "Sistem Bağlama №", "Xarici Bağlama №", "Xarici İzləmə Kodu", 
+          "Sifariş Tarixi", "Cari Status", 
+          "Maya (AZN)", "Karqo (AZN)", "Satış (AZN)", "Xalis Mənfəət (AZN)", "Marja (%)", 
+          "Xüsusi Qeyd"
+        ];
+
+        const escapeCsv = (str) => `"${String(str || '').replace(/"/g, '""')}"`;
+
+        const rows = orders.map(o => {
+          const maya = parseFloat(o.mayaAzn) || 0;
+          const kargo = parseFloat(o.kargo) || 0;
+          const satis = parseFloat(o.satis) || 0;
+          const netProfit = (satis - (maya + kargo)).toFixed(2);
+          const marginPct = satis > 0 ? (((satis - (maya + kargo)) / satis) * 100).toFixed(1) + "%" : "0.0%";
+          const norm = normalizeStage(o.status);
+          const stageLabel = STAGE_LABELS[norm] || o.status;
+
+          return [
+            o.id,
+            escapeCsv(o.mehsul),
+            escapeCsv(o.musteri),
+            escapeCsv(o.telefon),
+            o.izlemeKodu || '',
+            o.baglamaNomre || '',
+            escapeCsv(o.xariciBaglama),
+            escapeCsv(o.xariciIzleme),
+            o.tarix || '',
+            escapeCsv(stageLabel),
+            maya.toFixed(2),
+            kargo.toFixed(2),
+            satis.toFixed(2),
+            netProfit,
+            marginPct,
+            escapeCsv(o.qeyd)
+          ].join(",");
+        });
+
+        const csvContent = "\uFEFF" + [headers.join(","), ...rows].join("\r\n");
+        const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        const dateStr = new Date().toISOString().split("T")[0];
+        link.setAttribute("href", url);
+        link.setAttribute("download", `PADYEZD_Hesabat_${dateStr}.csv`);
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        showToast("Excel hesabatı uğurla yükləndi!");
+      };
+
       // 4 Top Dashboard Metrics (Sifariş sayı, Aktiv bağlama, Ümumi satış, Ümumi mənfəət)
       const stats = useMemo(() => {
         const totalOrders = orders.length;
@@ -631,6 +825,18 @@
                   className={`p-2 rounded-lg border transition-colors ${isDark ? "bg-zinc-900 border-zinc-800 text-zinc-300 hover:text-white" : "bg-zinc-100 border-zinc-300 text-zinc-700 hover:text-black"}`}
                 >
                   {isDark ? <Icons.Sun size={17} /> : <Icons.Moon size={17} />}
+                </button>
+
+                {/* EXCEL / CSV İXRAC DÜYMƏSİ */}
+                <button
+                  onClick={handleExportExcel}
+                  className={`px-3 py-2 rounded-lg font-bold text-xs flex items-center gap-1.5 border transition-all ${
+                    isDark ? "bg-zinc-900 hover:bg-zinc-800 text-emerald-400 border-zinc-800 hover:border-emerald-500/50" : "bg-white hover:bg-zinc-100 text-emerald-700 border-zinc-300 shadow-sm"
+                  }`}
+                  title="Bütün sifarişləri Excel (CSV) faylı kimi yüklə"
+                >
+                  <Icons.Download size={15} />
+                  <span className="hidden sm:inline">Excel İxrac</span>
                 </button>
 
                 <button
@@ -775,12 +981,64 @@
               </div>
             </div>
 
+            {/* BULK ACTIONS BAR (When 1 or more orders are selected) */}
+            {selectedOrderIds.length > 0 && (
+              <div className={`p-3.5 sm:p-4 rounded-xl border flex flex-col sm:flex-row items-center justify-between gap-3 animate-fade-in ${
+                isDark ? "bg-emerald-950/40 border-emerald-500/40 text-white" : "bg-emerald-50 border-emerald-300 text-emerald-950"
+              }`}>
+                <div className="flex items-center gap-2 text-xs font-mono font-bold">
+                  <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                  <span>{selectedOrderIds.length} sifariş seçildi</span>
+                </div>
+
+                <div className="flex items-center gap-2.5 w-full sm:w-auto">
+                  <span className="text-[11px] font-mono text-zinc-400 hidden md:inline">Mərhələyə keçir:</span>
+                  <select
+                    value={bulkStage}
+                    onChange={(e) => setBulkStage(e.target.value)}
+                    className={`px-3 py-1.5 rounded-lg border text-xs font-mono font-semibold focus:outline-none cursor-pointer ${
+                      isDark ? "bg-zinc-900 border-zinc-700 text-white" : "bg-white border-zinc-300 text-black"
+                    }`}
+                  >
+                    {STAGE_KEYS.map(k => (
+                      <option key={k} value={k}>{STAGE_LABELS[k]}</option>
+                    ))}
+                  </select>
+
+                  <button
+                    onClick={handleBulkUpdateStage}
+                    disabled={isBulkUpdating}
+                    className="px-3.5 py-1.5 rounded-lg text-xs font-mono font-bold bg-emerald-500 hover:bg-emerald-400 text-black transition-colors shrink-0 disabled:opacity-50"
+                  >
+                    {isBulkUpdating ? "Yenilənir..." : "Toplu Dəyiş"}
+                  </button>
+
+                  <button
+                    onClick={() => setSelectedOrderIds([])}
+                    className="px-2.5 py-1.5 rounded-lg text-xs font-mono text-zinc-400 hover:text-white transition-colors shrink-0"
+                    title="Seçimi təmizlə"
+                  >
+                    ✕
+                  </button>
+                </div>
+              </div>
+            )}
+
             {/* ORDERS TABLE */}
             <div className="theme-card rounded-2xl border overflow-hidden">
               <div className="overflow-x-auto">
                 <table className="w-full text-left text-xs font-mono">
                   <thead className={`border-b text-[11px] uppercase tracking-wider text-zinc-500 ${isDark ? "bg-zinc-900/60 border-zinc-800" : "bg-zinc-100/60 border-zinc-200"}`}>
                     <tr>
+                      <th className="py-3 px-3 w-10 text-center">
+                        <input
+                          type="checkbox"
+                          checked={filteredOrders.length > 0 && selectedOrderIds.length === filteredOrders.length}
+                          onChange={toggleSelectAll}
+                          className="w-4 h-4 rounded cursor-pointer accent-emerald-500"
+                          title="Hamısını seç / seçimi qaldır"
+                        />
+                      </th>
                       <th className="py-3 px-4">Məhsul</th>
                       <th className="py-3 px-4">Müştəri / Əlaqə</th>
                       <th className="py-3 px-4">İzləmə Kodu (Kopyala)</th>
@@ -795,7 +1053,7 @@
                   <tbody className="divide-y divide-zinc-800/40">
                     {filteredOrders.length === 0 ? (
                       <tr>
-                        <td colSpan="9" className="py-12 text-center text-zinc-500 font-mono text-xs">
+                        <td colSpan="10" className="py-12 text-center text-zinc-500 font-mono text-xs">
                           Heç bir sifariş tapılmadı. "+ Yeni Sifariş" düyməsinə klikləyərək əlavə edə bilərsiniz.
                         </td>
                       </tr>
@@ -806,13 +1064,36 @@
                         const isLastStage = curIdx >= STAGE_KEYS.length - 1;
 
                         return (
-                          <tr key={order.id} className={isDark ? "hover:bg-zinc-900/30" : "hover:bg-zinc-50"}>
+                          <tr key={order.id} className={`${selectedOrderIds.includes(order.id) ? (isDark ? "bg-emerald-950/20" : "bg-emerald-50/60") : ""} ${isDark ? "hover:bg-zinc-900/30" : "hover:bg-zinc-50"}`}>
+                            <td className="py-3 px-3 text-center" onClick={(e) => e.stopPropagation()}>
+                              <input
+                                type="checkbox"
+                                checked={selectedOrderIds.includes(order.id)}
+                                onChange={() => toggleSelectOrder(order.id)}
+                                className="w-4 h-4 rounded cursor-pointer accent-emerald-500"
+                              />
+                            </td>
                             <td className="py-3 px-4 font-sans font-bold text-sm">
                               <span className={isDark ? "text-white" : "text-black"}>{order.mehsul}</span>
                               {order.qeyd && <span className="block text-[11px] font-mono text-zinc-500 font-normal">{order.qeyd}</span>}
                             </td>
                             <td className="py-3 px-4 font-sans">
-                              <div className="font-semibold">{order.musteri || "—"}</div>
+                              <div className="flex items-center gap-1.5 flex-wrap">
+                                <span className="font-semibold">{order.musteri || "—"}</span>
+                                {(() => {
+                                  const custKey = (order.musteri || "").trim().toLowerCase();
+                                  const totalCount = customerOrderCounts[custKey] || 1;
+                                  if (totalCount >= 2) {
+                                    return (
+                                      <span className="inline-flex items-center gap-1 text-[10px] font-mono font-bold px-1.5 py-0.5 rounded bg-amber-500/15 text-amber-400 border border-amber-500/30" title={`Bu müştərinin cəmi ${totalCount} sifarişi var`}>
+                                        <Icons.Crown size={10} />
+                                        <span>VIP • {totalCount} sifariş</span>
+                                      </span>
+                                    );
+                                  }
+                                  return null;
+                                })()}
+                              </div>
                               <div className="text-[11px] font-mono text-zinc-500">{order.telefon || "—"}</div>
                             </td>
                             <td className="py-3 px-4">
@@ -969,6 +1250,41 @@
                           />
                         </div>
                       </div>
+
+                      {/* CUSTOMER HISTORY & VIP CRM CARD */}
+                      {customerCRM && (
+                        <div className={`p-3.5 rounded-xl border transition-all animate-fade-in ${
+                          customerCRM.isVip
+                            ? isDark ? "bg-amber-950/30 border-amber-500/40 text-amber-200" : "bg-amber-50 border-amber-300 text-amber-900"
+                            : isDark ? "bg-zinc-900 border-zinc-700 text-zinc-300" : "bg-zinc-100 border-zinc-300 text-zinc-800"
+                        }`}>
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-1.5 font-bold text-[11px]">
+                              <Icons.Crown size={14} className="text-amber-400" />
+                              <span>Müştəri Tarixçəsi & CRM</span>
+                            </div>
+                            {customerCRM.isVip ? (
+                              <span className="text-[10px] font-mono px-2 py-0.5 rounded font-bold bg-amber-500/20 text-amber-400 border border-amber-500/30">
+                                VIP DAİMİ MÜŞTƏRİ
+                              </span>
+                            ) : (
+                              <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-zinc-800 text-zinc-400">
+                                Daimi Müştəri
+                              </span>
+                            )}
+                          </div>
+
+                          <div className="mt-2 text-xs font-mono space-y-1">
+                            <div>
+                              Bu müştərinin artıq <span className="font-extrabold text-amber-400 text-sm">{customerCRM.currentOrderNo}-ci</span> sifarişidir
+                            </div>
+                            <div className="flex items-center justify-between text-[11px] text-zinc-400 pt-1.5 border-t border-zinc-800/40">
+                              <span>Cəmi alış: <b className="text-emerald-400">{customerCRM.totalSpent} ₼</b></span>
+                              <span>Əvvəlki: {customerCRM.count} sifariş</span>
+                            </div>
+                          </div>
+                        </div>
+                      )}
 
                       <div className="grid grid-cols-2 gap-3">
                         <div>

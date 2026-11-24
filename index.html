@@ -138,9 +138,9 @@
         faq1Q: "Sifariş neçə gün ərzində Bakıya çatır?",
         faq1A: "Məhsul Çin anbarımıza çatdıqdan sonra orta hesabla 7–12 iş günü ərzində Bakı mərkəzinə çatdırılır.",
         faq2Q: "İzləmə kodunu haradan əldə edə bilərəm?",
-        faq2A: "Sifarişiniz təsdiqləndikdən sonra sizə WhatsApp və ya Instagram üzərindən fərdi PD-... izləmə kodu təqdim olunur.",
+        faq2A: "Sifarişiniz təsdiqləndikdən sonra sizə Instagram və ya Telegram üzərindən fərdi PD-... izləmə kodu təqdim olunur.",
         faq3Q: "Bağlamamı necə təhvil ala bilərəm?",
-        faq3A: "Bakı mərkəzindəki təhvil məntəqəmizdən şəxsən və ya kuryer vasitəsilə qapınıza çatdırılma ilə.",
+        faq3A: "Bağlamanız Bakıya çatan kimi operativ kuryer xidmətimizlə birbaşa qeyd etdiyiniz ünvana (qapınıza qədər) çatdırılır.",
         helpTitle: "Sualınız və ya xüsusi sifarişiniz var?",
         helpDesc: "Bizimlə birbaşa əlaqə saxlayın, komandamız sizə dərhal kömək etsin.",
         contactIgBtn: "Instagram DM",
@@ -205,9 +205,9 @@
         faq1Q: "Сколько времени занимает доставка?",
         faq1A: "После поступления товара на зарубежный склад доставка в Баку занимает в среднем 7–12 рабочих дней.",
         faq2Q: "Где мне взять трек-код?",
-        faq2A: "После подтверждения заказа наш менеджер отправляет вам персональный код PD-... через WhatsApp или Instagram.",
+        faq2A: "После подтверждения заказа наш менеджер отправляет вам персональный код PD-... через Instagram или Telegram.",
         faq3Q: "Как забрать заказ?",
-        faq3A: "В центральном пункте выдачи в Баку или с курьерской доставкой прямо до двери.",
+        faq3A: "Как только посылка прибывает в Баку, наш курьер оперативно доставляет её прямо до вашей двери.",
         helpTitle: "Есть вопросы или индивидуальный заказ?",
         helpDesc: "Свяжитесь с нами напрямую, наша команда всегда готова помочь.",
         contactIgBtn: "Instagram DM",
@@ -272,9 +272,9 @@
         faq1Q: "How long does delivery take?",
         faq1A: "Once arrived at our China facility, parcels typically reach central Baku within 7–12 business days.",
         faq2Q: "Where do I get my tracking code?",
-        faq2A: "Your unique PD-... tracking code is issued by our team via WhatsApp or Instagram after order confirmation.",
+        faq2A: "Your unique PD-... tracking code is issued by our team via Instagram or Telegram after order confirmation.",
         faq3Q: "How do I receive my package?",
-        faq3A: "Collect it from our central pickup point in Baku or request fast doorstep courier delivery.",
+        faq3A: "As soon as your package arrives in Baku, it is delivered directly to your doorstep by courier.",
         helpTitle: "Have questions or custom inquiries?",
         helpDesc: "Connect directly with our team on Instagram DM or Telegram for instant assistance.",
         contactIgBtn: "Instagram DM",
@@ -1056,11 +1056,11 @@
                               {/* EXACT ARRIVAL DATE DISPLAY */}
                               {(isPassed || isCurrent) && stageDateFormatted ? (
                                 <span className={`text-[10px] font-mono block mt-1 ${isCurrent ? "text-emerald-400 font-bold" : "text-zinc-400"}`}>
-                                  📅 {stageDateFormatted} {t("arrivedAtDate")}
+                                  {stageDateFormatted}
                                 </span>
                               ) : (
                                 <span className="text-[10px] font-mono text-zinc-500 block mt-1">
-                                  ⏳ {t("stageUpcoming")}
+                                  {t("stageUpcoming")}
                                 </span>
                               )}
                             </div>
@@ -1087,86 +1087,8 @@
               </div>
             ) : (
               <div className="space-y-10 animate-fade-in pt-4">
-                
-                {/* 1. HOW IT WORKS / 3 STEPS */}
-                <div className="space-y-5">
-                  <div className="text-center space-y-1.5">
-                    <span className="text-[10px] font-mono tracking-widest uppercase text-emerald-500 font-bold block">
-                      {t("howItWorksTag")}
-                    </span>
-                    <h2 className={`font-syne font-extrabold text-xl sm:text-2xl ${isDark ? "text-white" : "text-black"}`}>
-                      {t("howItWorksTitle")}
-                    </h2>
-                    <p className="text-xs text-zinc-500 max-w-md mx-auto">
-                      {t("howItWorksSubtitle")}
-                    </p>
-                  </div>
-
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    {/* STEP 1 */}
-                    <div className="theme-card p-5 sm:p-6 rounded-2xl border flex flex-col justify-between space-y-4 relative overflow-hidden group hover:border-zinc-500 transition-all">
-                      <div className="flex items-center justify-between">
-                        <span className="text-2xl font-black font-mono text-zinc-600/60 dark:text-zinc-700/60 group-hover:text-emerald-500 transition-colors">
-                          {t("step1No")}
-                        </span>
-                        <div className={`p-2.5 rounded-xl border ${isDark ? "bg-zinc-900 border-zinc-800 text-zinc-200" : "bg-zinc-100 border-zinc-200 text-zinc-800"}`}>
-                          <Icons.Search size={18} />
-                        </div>
-                      </div>
-                      <div className="space-y-1">
-                        <h3 className={`font-syne font-bold text-sm ${isDark ? "text-white" : "text-black"}`}>
-                          {t("step1Title")}
-                        </h3>
-                        <p className="text-xs text-zinc-500 leading-relaxed font-mono">
-                          {t("step1Desc")}
-                        </p>
-                      </div>
-                    </div>
-
-                    {/* STEP 2 */}
-                    <div className="theme-card p-5 sm:p-6 rounded-2xl border flex flex-col justify-between space-y-4 relative overflow-hidden group hover:border-zinc-500 transition-all">
-                      <div className="flex items-center justify-between">
-                        <span className="text-2xl font-black font-mono text-zinc-600/60 dark:text-zinc-700/60 group-hover:text-emerald-500 transition-colors">
-                          {t("step2No")}
-                        </span>
-                        <div className="p-2.5 rounded-xl bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
-                          <Icons.MapPin size={18} />
-                        </div>
-                      </div>
-                      <div className="space-y-1">
-                        <h3 className={`font-syne font-bold text-sm ${isDark ? "text-white" : "text-black"}`}>
-                          {t("step2Title")}
-                        </h3>
-                        <p className="text-xs text-zinc-500 leading-relaxed font-mono">
-                          {t("step2Desc")}
-                        </p>
-                      </div>
-                    </div>
-
-                    {/* STEP 3 */}
-                    <div className="theme-card p-5 sm:p-6 rounded-2xl border flex flex-col justify-between space-y-4 relative overflow-hidden group hover:border-zinc-500 transition-all">
-                      <div className="flex items-center justify-between">
-                        <span className="text-2xl font-black font-mono text-zinc-600/60 dark:text-zinc-700/60 group-hover:text-emerald-500 transition-colors">
-                          {t("step3No")}
-                        </span>
-                        <div className="p-2.5 rounded-xl bg-sky-500/10 text-sky-400 border border-sky-500/20">
-                          <Icons.Box size={18} />
-                        </div>
-                      </div>
-                      <div className="space-y-1">
-                        <h3 className={`font-syne font-bold text-sm ${isDark ? "text-white" : "text-black"}`}>
-                          {t("step3Title")}
-                        </h3>
-                        <p className="text-xs text-zinc-500 leading-relaxed font-mono">
-                          {t("step3Desc")}
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                {/* 2. STANDARDS / BRAND PILLARS */}
-                <div className="theme-card rounded-2xl p-6 sm:p-8 border space-y-6">
+                {/* 1. STANDARDS / BRAND PILLARS */}
+<div className="theme-card rounded-2xl p-6 sm:p-8 border space-y-6">
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b pb-4 border-zinc-800/40 dark:border-zinc-800">
                     <div>
                       <span className="text-[10px] font-mono tracking-widest uppercase text-emerald-500 font-bold block">
