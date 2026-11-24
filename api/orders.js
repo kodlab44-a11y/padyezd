@@ -1,7 +1,5 @@
 const { neon } = require('@neondatabase/serverless');
 
-const ADMIN_KEY = "Padyezd*Baku#2026";
-
 function getSql() {
   const connString = process.env.POSTGRES_URL || process.env.DATABASE_URL;
   if (!connString) {
@@ -10,11 +8,20 @@ function getSql() {
   return neon(connString);
 }
 
+async function verifyAdminAuth(req, sql) {
+  const token = req.headers['x-admin-token'] || req.headers['x-admin-key'] || req.query.adminKey || (req.body && req.body.adminToken);
+  if (!token) return false;
+
+  const rows = await sql`SELECT session_token FROM admin_auth WHERE id = 1 LIMIT 1`;
+  if (rows.length === 0 || !rows[0].session_token) return false;
+  return rows[0].session_token === token;
+}
+
 module.exports = async (req, res) => {
   // CORS Headers
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, DELETE, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, x-admin-key');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, x-admin-key, x-admin-token');
 
   if (req.method === 'OPTIONS') {
     return res.status(200).end();
@@ -58,8 +65,8 @@ module.exports = async (req, res) => {
       }
 
       // Admin list of all orders (requires auth)
-      const clientKey = req.headers['x-admin-key'] || req.query.adminKey;
-      if (clientKey !== ADMIN_KEY) {
+      const isAuthed = await verifyAdminAuth(req, sql);
+      if (!isAuthed) {
         return res.status(401).json({ error: "İcazə verilmədi (Unauthorized)" });
       }
 
@@ -81,8 +88,8 @@ module.exports = async (req, res) => {
 
     // 2. POST REQUEST (CREATE / UPDATE ORDER)
     if (method === 'POST') {
-      const clientKey = req.headers['x-admin-key'] || (req.body && req.body.adminKey);
-      if (clientKey !== ADMIN_KEY) {
+      const isAuthed = await verifyAdminAuth(req, sql);
+      if (!isAuthed) {
         return res.status(401).json({ error: "İcazə verilmədi (Unauthorized)" });
       }
 
@@ -155,8 +162,8 @@ module.exports = async (req, res) => {
 
     // 3. DELETE REQUEST (DELETE ORDER)
     if (method === 'DELETE') {
-      const clientKey = req.headers['x-admin-key'] || req.query.adminKey;
-      if (clientKey !== ADMIN_KEY) {
+      const isAuthed = await verifyAdminAuth(req, sql);
+      if (!isAuthed) {
         return res.status(401).json({ error: "İcazə verilmədi (Unauthorized)" });
       }
 
